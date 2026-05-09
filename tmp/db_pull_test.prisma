@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AIRecommendation {
+  id                String            @id
+  job_id            String
+  freelancer_id     String
+  match_score       Float
+  reasoning         String
+  generated_at      DateTime          @default(now())
+  FreelancerProfile FreelancerProfile @relation(fields: [freelancer_id], references: [id])
+  Job               Job               @relation(fields: [job_id], references: [id])
+}
+
+model ClientProfile {
+  id                String     @id
+  user_id           String     @unique
+  company_name      String
+  industry          String
+  total_jobs_posted Int
+  bio               String?
+  location          String?
+  created_at        DateTime   @default(now())
+  User              User       @relation(fields: [user_id], references: [id])
+  Contract          Contract[]
+  Job               Job[]
+}
+
+model Contract {
+  id                String            @id
+  job_id            String
+  freelancer_id     String
+  client_id         String
+  agreed_amount     Float
+  status            ContractStatus
+  start_date        DateTime
+  created_at        DateTime          @default(now())
+  ClientProfile     ClientProfile     @relation(fields: [client_id], references: [id])
+  FreelancerProfile FreelancerProfile @relation(fields: [freelancer_id], references: [id])
+  Job               Job               @relation(fields: [job_id], references: [id])
+  Milestone         Milestone[]
+  Payment           Payment[]
+  Review            Review[]
+}
+
+model FreelancerProfile {
+  id               String             @id
+  user_id          String             @unique
+  title            String
+  hourly_rate      Float
+  ai_score         Float
+  availability     Availability
+  bio              String?
+  location         String?
+  created_at       DateTime           @default(now())
+  AIRecommendation AIRecommendation[]
+  Contract         Contract[]
+  User             User               @relation(fields: [user_id], references: [id])
+  FreelancerSkill  FreelancerSkill[]
+  Proposal         Proposal[]
+}
+
+model FreelancerSkill {
+  freelancer_id     String
+  skill_id          String
+  proficiency_level ProficiencyLevel
+  FreelancerProfile FreelancerProfile @relation(fields: [freelancer_id], references: [id])
+  Skill             Skill             @relation(fields: [skill_id], references: [id])
+
+  @@id([freelancer_id, skill_id])
+}
+
+model Job {
+  id               String             @id
+  client_id        String
+  title            String
+  budget_min       Float
+  budget_max       Float
+  status           JobStatus
+  deadline         DateTime
+  description      String
+  created_at       DateTime           @default(now())
+  AIRecommendation AIRecommendation[]
+  Contract         Contract[]
+  ClientProfile    ClientProfile      @relation(fields: [client_id], references: [id])
+  Message          Message[]
+  Proposal         Proposal[]
+  Skill            Skill[]
+}
+
+model Message {
+  id                             String   @id
+  sender_id                      String
+  receiver_id                    String
+  job_id                         String
+  content                        String
+  is_read                        Boolean  @default(false)
+  created_at                     DateTime @default(now())
+  Job                            Job      @relation(fields: [job_id], references: [id])
+  User_Message_receiver_idToUser User     @relation("Message_receiver_idToUser", fields: [receiver_id], references: [id])
+  User_Message_sender_idToUser   User     @relation("Message_sender_idToUser", fields: [sender_id], references: [id])
+}
+
+model Milestone {
+  id          String          @id
+  contract_id String
+  title       String
+  amount      Float
+  status      MilestoneStatus
+  due_date    DateTime
+  created_at  DateTime        @default(now())
+  Contract    Contract        @relation(fields: [contract_id], references: [id])
+  Payment     Payment[]
+}
+
+model Payment {
+  id           String        @id
+  contract_id  String
+  milestone_id String
+  amount       Float
+  status       PaymentStatus
+  paid_at      DateTime?
+  created_at   DateTime      @default(now())
+  Contract     Contract      @relation(fields: [contract_id], references: [id])
+  Milestone    Milestone     @relation(fields: [milestone_id], references: [id])
+}
+
+model Proposal {
+  id                 String            @id
+  job_id             String
+  freelancer_id      String
+  bid_amount         Float
+  status             ProposalStatus
+  ai_relevance_score Float
+  cover_letter       String
+  created_at         DateTime          @default(now())
+  FreelancerProfile  FreelancerProfile @relation(fields: [freelancer_id], references: [id])
+  Job                Job               @relation(fields: [job_id], references: [id])
+}
+
+model Review {
+  id          String   @id
+  contract_id String
+  reviewer_id String
+  rating      Int
+  comment     String
+  created_at  DateTime @default(now())
+  Contract    Contract @relation(fields: [contract_id], references: [id])
+  User        User     @relation(fields: [reviewer_id], references: [id])
+}
+
+model Skill {
+  id              String            @id
+  name            String
+  category        String
+  created_at      DateTime          @default(now())
+  FreelancerSkill FreelancerSkill[]
+  Job             Job[]
+}
+
+model User {
+  id                                String             @id
+  email                             String             @unique
+  full_name                         String
+  role                              Role
+  is_verified                       Boolean            @default(false)
+  created_at                        DateTime           @default(now())
+  passwordHash                      String
+  ClientProfile                     ClientProfile?
+  FreelancerProfile                 FreelancerProfile?
+  Message_Message_receiver_idToUser Message[]          @relation("Message_receiver_idToUser")
+  Message_Message_sender_idToUser   Message[]          @relation("Message_sender_idToUser")
+  Review                            Review[]
+}
+
+enum Availability {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum ContractStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum JobStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+enum MilestoneStatus {
+  PENDING
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  INTERMEDIATE
+  EXPERT
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum Role {
+  CLIENT
+  FREELANCER
+}
+
+

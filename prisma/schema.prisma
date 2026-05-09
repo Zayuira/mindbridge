@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(uuid())
+  email             String             @unique
+  phone             String             @unique
+  full_name         String
+  role              Role
+  is_verified       Boolean            @default(false)
+  email_verified    Boolean            @default(false)
+  phone_verified    Boolean            @default(false)
+  passwordHash      String
+  createdAt         DateTime           @default(now())
+  clientProfile     ClientProfile?
+  freelancerProfile FreelancerProfile?
+  receivedMessages  Message[]          @relation("ReceivedMessages")
+  sentMessages      Message[]          @relation("SentMessages")
+  reviewsGiven      Review[]           @relation("Reviewer")
+  verificationCodes VerificationCode[]
+  notifications     Notification[]
+}
+
+model VerificationCode {
+  id        String   @id @default(uuid())
+  user_id   String
+  code      String
+  type      VerificationType
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, type])
+}
+
+
+model ClientProfile {
+  id                String     @id @default(uuid())
+  user_id           String     @unique
+  company_name      String
+  industry          String
+  total_jobs_posted Int
+  bio               String?
+  location          String?
+  createdAt         DateTime   @default(now())
+  user              User       @relation(fields: [user_id], references: [id])
+  contracts         Contract[]
+  jobs              Job[]
+}
+
+model FreelancerProfile {
+  id              String             @id @default(uuid())
+  user_id         String             @unique
+  title           String
+  hourly_rate     Float
+  ai_score        Float
+  availability    Availability
+  bio             String?
+  location        String?
+  createdAt       DateTime           @default(now())
+  recommendations AIRecommendation[]
+  contracts       Contract[]
+  user            User               @relation(fields: [user_id], references: [id])
+  skills          FreelancerSkill[]
+  proposals       Proposal[]
+
+  // ✅ #7.1 Availability шүүлтийн index — AI match-д
+  @@index([availability])
+}
+
+model Skill {
+  id          String            @id @default(uuid())
+  name        String
+  category    String
+  createdAt   DateTime          @default(now())
+  freelancers FreelancerSkill[]
+  jobs        Job[]             @relation("JobToSkill")
+}
+
+model FreelancerSkill {
+  freelancer_id     String
+  skill_id          String
+  proficiency_level ProficiencyLevel
+  freelancer        FreelancerProfile @relation(fields: [freelancer_id], references: [id])
+  skill             Skill             @relation(fields: [skill_id], references: [id])
+
+  @@id([freelancer_id, skill_id])
+}
+
+model Job {
+  id              String             @id @default(uuid())
+  client_id       String
+  title           String
+  budget_min      Float
+  budget_max      Float
+  status          JobStatus
+  deadline        DateTime
+  description     String
+  createdAt       DateTime           @default(now())
+  recommendations AIRecommendation[]
+  contracts       Contract[]
+  client          ClientProfile      @relation(fields: [client_id], references: [id])
+  messages        Message[]
+  proposals       Proposal[]
+  skills          Skill[]            @relation("JobToSkill")
+
+  // ✅ #7.1 Database Indexes — хайлт/шүүлтийн гол field-үүд
+  @@index([client_id])
+  @@index([status])
+  @@index([status, createdAt])
+}
+
+model Proposal {
+  id                 String            @id @default(uuid())
+  job_id             String
+  freelancer_id      String
+  bid_amount         Float
+  status             ProposalStatus
+  ai_relevance_score Float
+  cover_letter       String
+  createdAt          DateTime          @default(now())
+  freelancer         FreelancerProfile @relation(fields: [freelancer_id], references: [id])
+  job                Job               @relation(fields: [job_id], references: [id])
+
+  // ✅ #7.1 Proposal шүүлт: ажлын санал хайхад хурдан
+  @@index([job_id])
+  @@index([freelancer_id])
+  @@index([job_id, freelancer_id])
+  @@index([status])
+}
+
+model Contract {
+  id            String            @id @default(uuid())
+  job_id        String
+  freelancer_id String
+  client_id     String
+  agreed_amount Float
+  status        ContractStatus
+  start_date    DateTime
+  createdAt     DateTime          @default(now())
+  client        ClientProfile     @relation(fields: [client_id], references: [id])
+  freelancer    FreelancerProfile @relation(fields: [freelancer_id], references: [id])
+  job           Job               @relation(fields: [job_id], references: [id])
+  milestones    Milestone[]
+  payments      Payment[]
+  reviews       Review[]
+
+  // ✅ #7.1 Contract шүүлт: freelancer/client dashboard-т
+  @@index([freelancer_id])
+  @@index([client_id])
+  @@index([status])
+}
+
+model Milestone {
+  id          String          @id @default(uuid())
+  contract_id String
+  title       String
+  amount      Float
+  status      MilestoneStatus
+  due_date    DateTime
+  createdAt   DateTime        @default(now())
+  contract    Contract        @relation(fields: [contract_id], references: [id])
+  payments    Payment[]
+}
+
+model Payment {
+  id           String        @id @default(uuid())
+  contract_id  String
+  milestone_id String
+  amount       Float
+  status       PaymentStatus
+  paid_at      DateTime?
+  createdAt    DateTime      @default(now())
+  contract     Contract      @relation(fields: [contract_id], references: [id])
+  milestone    Milestone     @relation(fields: [milestone_id], references: [id])
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  contract_id String
+  reviewer_id String
+  rating      Int
+  comment     String
+  createdAt   DateTime @default(now())
+  contract    Contract @relation(fields: [contract_id], references: [id])
+  reviewer    User     @relation("Reviewer", fields: [reviewer_id], references: [id])
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  sender_id   String
+  receiver_id String
+  job_id      String
+  content     String
+  is_read     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  job         Job      @relation(fields: [job_id], references: [id])
+  receiver    User     @relation("ReceivedMessages", fields: [receiver_id], references: [id])
+  sender      User     @relation("SentMessages", fields: [sender_id], references: [id])
+}
+
+model AIRecommendation {
+  id            String            @id @default(uuid())
+  job_id        String
+  freelancer_id String
+  match_score   Float
+  reasoning     String
+  generated_at  DateTime          @default(now())
+  freelancer    FreelancerProfile @relation(fields: [freelancer_id], references: [id])
+  job           Job               @relation(fields: [job_id], references: [id])
+
+  // ✅ #7.1 AI recommendation хайлтын index
+  @@index([job_id])
+  @@index([freelancer_id, match_score])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  user_id   String
+  type      String   // e.g., "PROPOSAL_RECEIVED", "CONTRACT_STARTED", "MESSAGE"
+  title     String
+  content   String
+  is_read   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [user_id], references: [id])
+
+  // ✅ #7.1 Notification шүүлт
+  @@index([user_id])
+  @@index([user_id, is_read])
+}
+
+enum Role {
+  CLIENT
+  FREELANCER
+  ADMIN
+}
+
+enum Availability {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum JobStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum ContractStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  INTERMEDIATE
+  EXPERT
+}
+
+enum VerificationType {
+  EMAIL
+  PHONE
+}
