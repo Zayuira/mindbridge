@@ -1,0 +1,10 @@
+var R=require("../../../chunks/[turbopack]_runtime.js")("server/app/api/payments/route.js")
+R.c("server/chunks/[root-of-the-server]__09yb.ko._.js")
+R.c("server/chunks/[root-of-the-server]__07qm26b._.js")
+R.c("server/chunks/021v_bcryptjs_index_0ib6nfi.js")
+R.c("server/chunks/021v_next_dist_esm_build_templates_app-route_0k2vs58.js")
+R.c("server/chunks/diploma_frontend_04hc~pc._.js")
+R.c("server/chunks/021v_next_0e6s9_v._.js")
+R.c("server/chunks/diploma_frontend__next-internal_server_app_api_payments_route_actions_02gvjz3.js")
+R.m(53315)
+module.exports=R.m(53315).exports
