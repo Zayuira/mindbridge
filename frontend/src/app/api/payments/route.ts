@@ -3,16 +3,20 @@ import Stripe from "stripe";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from '@/lib/auth';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2026-04-22.dahlia", // Matches the environment's type definitions
-});
-
 export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+
+        if (!process.env.STRIPE_SECRET_KEY) {
+            return NextResponse.json({ error: "STRIPE_SECRET_KEY is not configured" }, { status: 500 });
+        }
+
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+            apiVersion: "2026-04-22.dahlia",
+        });
 
         const { amount, jobId, contractId, description } = await req.json();
 

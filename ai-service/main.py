@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 import numpy as np
-import spacy
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -11,7 +10,11 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 # ✅ #1.1 Multilingual NLP: Олон хэл (Монгол, Англи) дэмждэг модел руу шилжүүлэв
 model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-nlp = spacy.load("en_core_web_sm")
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 SYNONYMS = {
     # ── IT & Software Development ──

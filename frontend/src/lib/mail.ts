@@ -2,8 +2,6 @@
 
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 /**
  * 6 оронтой OTP generate
  */
@@ -16,6 +14,12 @@ export function generateOTP(): string {
  */
 export async function sendOtpEmail(email: string, otp: string) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is not configured')
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY)
+
     const response = await resend.emails.send({
       from: 'onboarding@resend.dev',
       to: email,
