@@ -7,13 +7,23 @@ This repository has two deployable apps:
 
 ## Vercel Frontend
 
-Create a Vercel project from this repository and set:
+Create a Vercel project from this repository and set either of these:
+
+Recommended settings:
 
 - Root Directory: `frontend`
 - Framework Preset: `Next.js`
 - Install Command: `npm install`
 - Build Command: `npm run build`
 - Output Directory: `.next`
+
+Fallback settings if the project root is the repository root:
+
+- Root Directory: leave empty
+- Vercel will use the root `vercel.json`
+- Install Command: `npm install --prefix frontend`
+- Build Command: `npm run build --prefix frontend`
+- Output Directory: `frontend/.next`
 
 Required environment variables:
 
